@@ -7,7 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-var jwtKey = []byte("my_secret_key") // Should be in a secure place or from environment variables
+var JwtKey = []byte("my_secret_key") // Should be in a secure place or from environment variables
 
 type Claims struct {
 	Username string `json:"username"`
@@ -25,14 +25,14 @@ func GenerateToken(username string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(JwtKey)
 	return tokenString, err
 }
 
 // ValidateToken validates the jwt token
 func ValidateToken(signedToken string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+		return JwtKey, nil
 	})
 
 	if err != nil {

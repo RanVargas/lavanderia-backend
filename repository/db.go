@@ -20,5 +20,6 @@ func NewDB(cfg *config.Config) (*gorm.DB, error) {
 	if err := model.Migrate(db); err != nil {
 		return nil, err
 	}
+	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
 	return db, nil
 }
