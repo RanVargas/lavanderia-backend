@@ -15,15 +15,20 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	db, err := repository.NewDB(cfg)
+	_, err = repository.NewDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
 	r := gin.Default()
-	r.Use(api.AuthMiddleware())
+	r.Use(gin.Logger())
 
-	api.AddExampleRoutes(r, db)
+	authGroup := r.Group("/")
+	authGroup.Use(api.AuthMiddleware())
+	{
+		//authGroup.GET("/examples", exampleHandler)
+		authGroup.POST("/login", api.LoginForUsers)
+	}
 
 	if err := r.Run(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
