@@ -9,8 +9,8 @@ import (
 type Request struct {
 	gorm.Model
 	Id               uuid.UUID       `gorm:"type:uuid;default:uuid_generate_v4();primaryKey;uniqueIndex" json:"id"`
-	OrderedDate      time.Time       `gorm:"uniqueIndex" json:"ordered_date"`
-	FulfilledDate    time.Time       `gorm:"uniqueIndex" json:"fulfilled_date"`
+	OrderedDate      time.Time       `json:"ordered_date"`
+	FulfilledDate    time.Time       `json:"fulfilled_date"`
 	Services         []*Service      `gorm:"many2many:request_services;" json:"services"`
 	Fulfilled        bool            `json:"fulfilled"`
 	Ongoing          bool            `json:"ongoing"`

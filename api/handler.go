@@ -1,6 +1,7 @@
 package api
 
 import (
+	"LavanderiaBackend/api/auth"
 	"LavanderiaBackend/model"
 	"LavanderiaBackend/repository"
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,12 @@ func CreateUser(c *gin.Context, repo *repository.UserRepository) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := repo.CreateUser(&user)
+	var err error
+	user.Password, err = auth.HashingPassword(user.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	err = repo.CreateUser(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
