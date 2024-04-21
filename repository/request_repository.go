@@ -28,3 +28,11 @@ func (repo *RequestRepository) GetRequestByID(id string) (model.Request, error) 
 	err := repo.db.Where("id = ?", id).First(&request).Error
 	return request, err
 }
+
+func (repo *RequestRepository) UpdateRequest(request *model.Request) error {
+	return repo.db.Save(request).Error
+}
+
+func (repo *RequestRepository) DeleteRequestByID(id string) error {
+	return repo.db.Where("id = ?", id).Delete(&model.Request{}).Error
+}

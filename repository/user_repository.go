@@ -43,6 +43,6 @@ func (repo *UserRepository) UpdateUser(user *model.User) error {
 	return repo.db.Save(user).Error
 }
 
-func (repo *UserRepository) DeleteUser(user *model.User) error {
-	return repo.db.Delete(user).Error
+func (repo *UserRepository) DeleteUser(id string) error {
+	return repo.db.Where("id = ?", id).Delete(&model.User{}).Error
 }

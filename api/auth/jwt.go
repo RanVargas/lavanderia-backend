@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"LavanderiaBackend/model"
 	"fmt"
 	"time"
 
@@ -10,15 +11,15 @@ import (
 var JwtKey = []byte("my_secret_key") // Should be in a secure place or from environment variables
 
 type Claims struct {
-	Username string `json:"username"`
+	User model.User `json:"user"`
 	jwt.StandardClaims
 }
 
 // GenerateToken generates a jwt token and assign a username to it's claims and return it
-func GenerateToken(username string) (string, error) {
+func GenerateToken(user model.User) (string, error) {
 	expirationTime := time.Now().Add(1 * time.Hour) // Token expires after 1 hour
 	claims := &Claims{
-		Username: username,
+		User: user,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -29,8 +30,7 @@ func GenerateToken(username string) (string, error) {
 	return tokenString, err
 }
 
-// ValidateToken validates the jwt token
-func ValidateToken(signedToken string) (*Claims, error) {
+/*func ValidateToken(signedToken string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return JwtKey, nil
 	})
@@ -40,8 +40,30 @@ func ValidateToken(signedToken string) (*Claims, error) {
 	}
 
 	claims, ok := token.Claims.(*Claims)
-	if !ok {
-		return nil, fmt.Errorf("couldn't parse claims")
+	if !ok || claims.User.Id == uuid.Nil { // Added check to ensure user ID is not nil
+		return nil, fmt.Errorf("couldn't parse claims or invalid user")
+	}
+
+	if claims.ExpiresAt < time.Now().Unix() {
+		return nil, fmt.Errorf("jwt is expired")
+	}
+
+	return claims, nil
+}*/
+
+func ValidateToken(signedToken string) (*Claims, error) {
+	// Parse the token.
+	token, err := jwt.ParseWithClaims(signedToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return JwtKey, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error parsing token: %w", err)
+	}
+
+	// Check if the token's claims can be used and are valid.
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("could not validate claims")
 	}
 
 	if claims.ExpiresAt < time.Now().Unix() {

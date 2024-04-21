@@ -28,3 +28,11 @@ func (repo *ServiceRepository) GetServiceByID(id string) (model.Service, error) 
 	err := repo.db.Where("id = ?", id).First(&service).Error
 	return service, err
 }
+
+func (repo *ServiceRepository) UpdateService(service *model.Service) error {
+	return repo.db.Save(service).Error
+}
+
+func (repo *ServiceRepository) DeleteService(id string) error {
+	return repo.db.Where("id = ?", id).Delete(&model.Service{}).Error
+}

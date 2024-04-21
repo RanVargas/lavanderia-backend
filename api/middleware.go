@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(userRepo *repository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -28,13 +28,56 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, err := auth.ValidateToken(token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error() + " At validating claims"})
 			return
 		}
 
-		c.Set("username", claims.Username)
+		// Fetch the user from the database
+		user, err := userRepo.GetUserByUsername(claims.User.Username)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}
+
+		// Store the user model in the context
+		c.Set("user", user)
 
 		c.Next()
+	}
+}
+
+/*func PrivilegeMiddleware(requiredPrivilege int) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, exists := c.Get("user")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
+			return
+		}
+
+		userModel := user.(model.User)
+		if userModel.Privileges > requiredPrivilege {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Insufficient privileges"})
+			return
+		}
+
+		c.Next()
+	}
+}*/
+
+func PrivilegeMiddleware(requiredPrivilege int) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, exists := c.Get("user")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
+			return
+		}
+
+		userModel := user.(model.User)
+		if userModel.Privileges <= requiredPrivilege {
+			c.Next()
+		} else {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Insufficient privileges"})
+		}
 	}
 }
 
@@ -62,7 +105,7 @@ func RegisterUser(c *gin.Context, userRepo *repository.UserRepository) {
 	// Create JWT token after successful registration
 	expirationTime := time.Now().Add(1 * time.Hour)
 	claims := &auth.Claims{
-		Username: user.Username,
+		User: user,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -75,7 +118,7 @@ func RegisterUser(c *gin.Context, userRepo *repository.UserRepository) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"token": tokenString, "user": user})
+	c.JSON(http.StatusCreated, gin.H{"token": tokenString, "user": user, "username": user.Username})
 }
 
 func CheckUserCredentials(username, password string, repo *repository.UserRepository) bool {
@@ -89,10 +132,11 @@ func CheckUserCredentials(username, password string, repo *repository.UserReposi
 }
 
 func LoginForUsers(c *gin.Context, userRepo *repository.UserRepository) {
-	var credentials struct {
+	/*var credentials struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
-	}
+	}*/
+	var credentials model.User
 
 	if err := c.BindJSON(&credentials); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request"})
@@ -106,7 +150,7 @@ func LoginForUsers(c *gin.Context, userRepo *repository.UserRepository) {
 
 	expirationTime := time.Now().Add(1 * time.Hour)
 	claims := &auth.Claims{
-		Username: credentials.Username,
+		User: credentials,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
